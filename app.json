@@ -1,0 +1,41 @@
+{
+  "name": "task-manager-backend",
+  "description": "Task Manager Backend with Supabase integration",
+  "repository": "https://github.com/yourusername/task-manager-backend",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["node", "express", "supabase", "task-manager", "api"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Environment setting",
+      "value": "production"
+    },
+    "SUPABASE_URL": {
+      "description": "Your Supabase project URL",
+      "required": true
+    },
+    "SUPABASE_ANON_KEY": {
+      "description": "Your Supabase anonymous key",
+      "required": true
+    },
+    "SUPABASE_SERVICE_ROLE_KEY": {
+      "description": "Your Supabase service role key (optional)",
+      "required": false
+    },
+    "JWT_SECRET": {
+      "description": "JWT secret for additional security",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}
