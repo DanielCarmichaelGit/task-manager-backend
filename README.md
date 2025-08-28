@@ -15,6 +15,7 @@ A robust Node.js/Express backend with Supabase integration, featuring JWT authen
 ## Tech Stack
 
 - **Runtime**: Node.js 18+
+- **Language**: TypeScript
 - **Framework**: Express.js
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth with JWT
@@ -246,8 +247,9 @@ heroku open
 ### Scripts
 
 ```bash
-npm start          # Start production server
-npm run dev        # Start development server with nodemon
+npm start          # Start production server (built TypeScript)
+npm run dev        # Start development server with nodemon and ts-node
+npm run build      # Build TypeScript to JavaScript
 npm test           # Run tests
 ```
 
@@ -255,15 +257,19 @@ npm test           # Run tests
 
 ```
 src/
+├── types/           # TypeScript type definitions
+│   └── index.ts     # All application types
 ├── config/          # Configuration files
-│   └── supabase.js  # Supabase client setup
+│   └── supabase.ts  # Supabase client setup
 ├── middleware/      # Express middleware
-│   ├── auth.js      # Authentication middleware
-│   └── security.js  # Security middleware
+│   ├── auth.ts      # Authentication middleware
+│   └── security.ts  # Security middleware
 ├── routes/          # API route handlers
-│   ├── auth.js      # Authentication routes
-│   └── tasks.js     # Task management routes
-└── server.js        # Main server file
+│   ├── auth.ts      # Authentication routes
+│   └── tasks.ts     # Task management routes
+└── server.ts        # Main server file
+
+dist/                # Compiled JavaScript (generated)
 ```
 
 ## Testing

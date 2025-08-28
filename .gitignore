@@ -32,6 +32,10 @@ coverage/
 node_modules/
 jspm_packages/
 
+# Build output
+dist/
+build/
+
 # Optional npm cache directory
 .npm
 

@@ -1,11 +1,11 @@
-const rateLimit = require("express-rate-limit");
-const helmet = require("helmet");
-const cors = require("cors");
-const compression = require("compression");
-const express = require("express");
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import cors from "cors";
+import compression from "compression";
+import express, { Application } from "express";
 
 // Rate limiting configuration
-const createRateLimiter = (windowMs, max, message) => {
+const createRateLimiter = (windowMs: number, max: number, message?: string) => {
   return rateLimit({
     windowMs,
     max,
@@ -20,8 +20,8 @@ const createRateLimiter = (windowMs, max, message) => {
 
 // General API rate limiter
 const apiLimiter = createRateLimiter(
-  parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  parseInt(process.env["RATE_LIMIT_WINDOW_MS"] || "900000"), // 15 minutes
+  parseInt(process.env["RATE_LIMIT_MAX_REQUESTS"] || "100"),
   "Too many requests from this IP, please try again later."
 );
 
@@ -33,13 +33,13 @@ const authLimiter = createRateLimiter(
 );
 
 // CORS configuration
-const corsOptions = {
+const corsOptions: cors.CorsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",")
+    const allowedOrigins = process.env["ALLOWED_ORIGINS"]
+      ? process.env["ALLOWED_ORIGINS"].split(",")
       : ["http://localhost:3000", "http://localhost:3001"];
 
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -53,7 +53,7 @@ const corsOptions = {
 };
 
 // Security middleware setup
-const setupSecurityMiddleware = (app) => {
+export const setupSecurityMiddleware = (app: Application): void => {
   // Basic security headers
   app.use(
     helmet({
@@ -83,8 +83,4 @@ const setupSecurityMiddleware = (app) => {
   app.use("/api/auth/", authLimiter);
 };
 
-module.exports = {
-  setupSecurityMiddleware,
-  apiLimiter,
-  authLimiter,
-};
+export { apiLimiter, authLimiter };

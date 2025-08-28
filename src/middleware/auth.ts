@@ -1,18 +1,30 @@
-const { supabase } = require("../config/supabase");
+import { Request, Response, NextFunction } from "express";
+import { supabase } from "../config/supabase";
+
+// Extend Express Request interface to include user and token
+export interface AuthenticatedRequest extends Request {
+  user: any;
+  token: string;
+}
 
 /**
  * Authentication middleware for Supabase JWT tokens
  * Verifies the Authorization header contains a valid JWT token
  */
-const authenticateUser = async (req, res, next) => {
+export const authenticateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
+      res.status(401).json({
         error: "Unauthorized",
         message: "Missing or invalid authorization header",
       });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -21,23 +33,24 @@ const authenticateUser = async (req, res, next) => {
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await supabase!.auth.getUser(token);
 
     if (error || !user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: "Unauthorized",
         message: "Invalid or expired token",
       });
+      return;
     }
 
     // Attach user information to the request object
-    req.user = user;
-    req.token = token;
+    (req as AuthenticatedRequest).user = user;
+    (req as AuthenticatedRequest).token = token;
 
     next();
   } catch (error) {
     console.error("Authentication error:", error);
-    return res.status(500).json({
+    res.status(500).json({
       error: "Internal Server Error",
       message: "Authentication failed",
     });
@@ -48,7 +61,11 @@ const authenticateUser = async (req, res, next) => {
  * Optional authentication middleware
  * Attaches user info if token is valid, but doesn't require it
  */
-const optionalAuth = async (req, res, next) => {
+export const optionalAuth = async (
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -57,11 +74,11 @@ const optionalAuth = async (req, res, next) => {
       const {
         data: { user },
         error,
-      } = await supabase.auth.getUser(token);
+      } = await supabase!.auth.getUser(token);
 
       if (!error && user) {
-        req.user = user;
-        req.token = token;
+        (req as AuthenticatedRequest).user = user;
+        (req as AuthenticatedRequest).token = token;
       }
     }
 
@@ -70,9 +87,4 @@ const optionalAuth = async (req, res, next) => {
     // Continue without authentication
     next();
   }
-};
-
-module.exports = {
-  authenticateUser,
-  optionalAuth,
 };
