@@ -15,16 +15,16 @@ if (
   throw new Error("Missing Supabase environment variables");
 }
 
-// Client for user operations (uses anon key)
-const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;
+// // Client for user operations (uses anon key)
+// const supabase: SupabaseClient | null =
+//   supabaseUrl && supabaseAnonKey
+//     ? createClient(supabaseUrl, supabaseAnonKey)
+//     : null;
 
 // Admin client for server-side operations (uses service role key)
-const supabaseAdmin: SupabaseClient | null =
+const supabase: SupabaseClient | null =
   supabaseServiceRoleKey && supabaseUrl
     ? createClient(supabaseUrl, supabaseServiceRoleKey)
     : null;
 
-export { supabase, supabaseAdmin };
+export { supabase };

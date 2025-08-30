@@ -19,6 +19,8 @@ export const authenticateUser = async (
   try {
     const authHeader = req.headers.authorization;
 
+    console.log("Auth header:", authHeader?.replace("Bearer ", ""));
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       res.status(401).json({
         error: "Unauthorized",
@@ -34,6 +36,8 @@ export const authenticateUser = async (
       data: { user },
       error,
     } = await supabase!.auth.getUser(token);
+
+    console.log("User:", user);
 
     if (error || !user) {
       res.status(401).json({

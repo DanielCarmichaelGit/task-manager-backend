@@ -29,33 +29,68 @@ router.use(authenticateUser);
  * @access  Private
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  console.log("📋 GET /api/tasks called");
-  try {
-    const authenticatedReq = req as any;
-    const { with_children, limit } = req.query;
+    console.log("📋 GET /api/tasks called");
+    try {
+      const authenticatedReq = req as any;
+      const { with_children, limit } = req.query;
+  
+      const limitNumber = limit ? parseInt(limit as string) : 200;
+      const user_id = authenticatedReq.user.id;
+  
+      console.log("User ID from req:", user_id);
+  
+      // Step 1: Run query with RLS
+      const { data: tasks, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user_id)
+        .limit(limitNumber);
+  
+      console.log("Tasks:", tasks);
+      console.log("Error:", error);
+  
+      // Step 2: Detect RLS block
+      let rlsBlocked = false;
+  
+      if (!error && tasks?.length === 0) {
+        // Try running the same query with service role key (bypassing RLS)
+        const { createClient } = require("@supabase/supabase-js");
+  
+        const supabaseService = createClient(
+          process.env.SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY! // <- must be in env
+        );
+  
+        const { data: rawTasks, error: rawError } = await supabaseService
+          .from("tasks")
+          .select("*")
+          .eq("user_id", user_id)
+          .limit(1); // just check existence
+  
+        if (rawTasks && rawTasks.length > 0 && !rawError) {
+          rlsBlocked = true;
+        }
+      }
+  
+      res.json({
+        tasks,
+        error,
+        rlsBlocked,
+      });
+    } catch (error) {
+      console.error("Fetch tasks error:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to fetch tasks",
+      });
+    }
+  });
+  
 
-    const limitNumber = limit ? parseInt(limit as string) : 200;
 
-    const { data: tasks, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", authenticatedReq.user.id)
-      .order("due_date", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(limitNumber);
-
-    console.log("Tasks:", tasks);
-    console.log("Error:", error);
-
-    res.json({ tasks });
-  } catch (error) {
-    console.error("Fetch tasks error:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: "Failed to fetch tasks",
-    });
-  }
-});
+// .order("due_date", { ascending: true })
+// .order("created_at", { ascending: false })
+// .limit(limitNumber);
 
 /**
  * @route   GET /api/tasks/:id
