@@ -21,6 +21,9 @@ router.post(
     req: Request<{}, {}, RegisterRequest>,
     res: Response
   ): Promise<void> => {
+    console.log("🔐 POST /api/auth/register called");
+    console.log("   Body:", req.body);
+
     try {
       const { email, password, user_metadata = {} } = req.body;
 
@@ -71,6 +74,9 @@ router.post(
 router.post(
   "/login",
   async (req: Request<{}, {}, LoginRequest>, res: Response): Promise<void> => {
+    console.log("🔐 POST /api/auth/login called");
+    console.log("   Body:", req.body);
+
     try {
       const { email, password } = req.body;
 

@@ -8,6 +8,18 @@ dotenv.config();
 
 const app: Application = express();
 
+// Add request logging middleware
+app.use((req: Request, res: Response, next: NextFunction): void => {
+  console.log(
+    `📥 ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`
+  );
+  console.log(`   Headers:`, req.headers);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log(`   Body:`, req.body);
+  }
+  next();
+});
+
 // Find an available port
 const findAvailablePort = (startPort: number): Promise<number> => {
   return new Promise((resolve) => {
@@ -38,27 +50,20 @@ app.get("/health", (_req: Request, res: Response): void => {
 });
 
 // Only load routes if Supabase is configured
-let authRoutes: any, taskRoutes: any;
-try {
-  if (process.env["SUPABASE_URL"] && process.env["SUPABASE_ANON_KEY"]) {
-    authRoutes = require("./routes/auth").default;
-    taskRoutes = require("./routes/tasks").default;
-    console.log("✅ Supabase configured - auth and task routes enabled");
-  } else {
-    console.warn("⚠️  Supabase not configured - auth and task routes disabled");
-    console.warn("   Set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file");
-  }
-} catch (error) {
-  console.warn("⚠️  Failed to load routes:", (error as Error).message);
-  console.warn("   Make sure Supabase is properly configured");
-}
+import authRoutes from "./routes/auth";
+import taskRoutes from "./routes/tasks";
 
 // API routes (only if Supabase is configured)
 if (authRoutes && taskRoutes) {
+  console.log("🔗 Mounting /api/auth routes...");
   app.use("/api/auth", authRoutes);
+  console.log("🔗 Mounting /api/tasks routes...");
   app.use("/api/tasks", taskRoutes);
+  console.log("✅ All API routes mounted successfully");
 } else {
-  app.get("/api/*", (_req: Request, res: Response): void => {
+  console.warn("⚠️  No routes to mount - setting up fallback");
+  app.get("/api/*", (req: Request, res: Response): void => {
+    console.log(`🚫 API route not found: ${req.originalUrl}`);
     res.status(503).json({
       error: "Service Unavailable",
       message:

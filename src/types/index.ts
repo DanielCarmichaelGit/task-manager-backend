@@ -18,6 +18,7 @@ export interface Task {
   priority: TaskPriority;
   due_date?: string;
   user_id: string;
+  parent_task_id?: string; // New: allows tasks to have parent tasks
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +32,7 @@ export interface CreateTaskRequest {
   status?: TaskStatus;
   priority?: TaskPriority;
   due_date?: string;
+  parent_task_id?: string; // New: optional parent task ID
 }
 
 export interface UpdateTaskRequest {
@@ -39,6 +41,18 @@ export interface UpdateTaskRequest {
   status?: TaskStatus;
   priority?: TaskPriority;
   due_date?: string;
+  parent_task_id?: string; // New: can update parent task
+}
+
+// New: Interface for tasks with children
+export interface TaskWithChildren extends Task {
+  children?: Task[];
+  child_count?: number;
+}
+
+// New: Interface for getting child tasks
+export interface GetChildTasksRequest {
+  parent_task_id: string;
 }
 
 export interface UpdateTaskStatusRequest {
@@ -102,4 +116,37 @@ export interface AuthenticatedRequest extends Request {
 export interface SupabaseConfig {
   supabase: any;
   supabaseAdmin: any;
+}
+
+// New interfaces for AI enhancement
+export interface AIEnhancementRequest {
+  enhancement_type: "enhance" | "split";
+  task_id: string;
+}
+
+export interface AIEnhancedTask {
+  id: string;
+  title: string;
+  description?: string;
+  enhanced_title?: string;
+  enhanced_description?: string;
+  ai_enhancement_notes?: string;
+}
+
+export interface AISplitTask {
+  parent_task_id: string;
+  subtasks: Array<{
+    title: string;
+    description?: string;
+    estimated_effort?: string;
+    priority?: TaskPriority;
+  }>;
+  split_reasoning?: string;
+}
+
+export interface AIEnhancementResponse {
+  success: boolean;
+  message: string;
+  data?: AIEnhancedTask | AISplitTask;
+  error?: string;
 }
