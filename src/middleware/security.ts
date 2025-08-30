@@ -1,6 +1,5 @@
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import cors from "cors";
 import compression from "compression";
 import express, { Application } from "express";
 
@@ -32,13 +31,6 @@ const authLimiter = createRateLimiter(
   "Too many authentication attempts, please try again later."
 );
 
-// CORS configuration
-const corsOptions: cors.CorsOptions = {
-  origin: "*", // allow all origins
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-};
-
 // Security middleware setup
 export const setupSecurityMiddleware = (app: Application): void => {
   // Basic security headers
@@ -54,9 +46,6 @@ export const setupSecurityMiddleware = (app: Application): void => {
       },
     })
   );
-
-  // CORS
-  app.use(cors(corsOptions));
 
   // Compression
   app.use(compression());

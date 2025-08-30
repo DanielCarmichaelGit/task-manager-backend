@@ -3,6 +3,7 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import { setupSecurityMiddleware } from "./middleware/security";
 import { HealthResponse } from "./types";
+import cors from "cors";
 
 dotenv.config();
 
@@ -31,6 +32,10 @@ let PORT: number = parseInt(process.env["PORT"] || "3000");
 
 // Setup security middleware
 setupSecurityMiddleware(app);
+
+// Allow everything
+app.use(cors());
+app.options("*", cors()); // handle preflight for all routes
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response): void => {
