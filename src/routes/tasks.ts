@@ -29,64 +29,62 @@ router.use(authenticateUser);
  * @access  Private
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-    console.log("📋 GET /api/tasks called");
-    try {
-      const authenticatedReq = req as any;
-      const { with_children, limit } = req.query;
-  
-      const limitNumber = limit ? parseInt(limit as string) : 200;
-      const user_id = authenticatedReq.user.id;
-  
-      console.log("User ID from req:", user_id);
-  
-      // Step 1: Run query with RLS
-      const { data: tasks, error } = await supabase
+  console.log("📋 GET /api/tasks called");
+  try {
+    const authenticatedReq = req as any;
+    const { with_children, limit } = req.query;
+
+    const limitNumber = limit ? parseInt(limit as string) : 200;
+    const user_id = authenticatedReq.user.id;
+
+    console.log("User ID from req:", user_id);
+
+    // Step 1: Run query with RLS
+    const { data: tasks, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user_id)
+      .limit(limitNumber);
+
+    console.log("Tasks:", tasks);
+    console.log("Error:", error);
+
+    // Step 2: Detect RLS block
+    let rlsBlocked = false;
+
+    if (!error && tasks?.length === 0) {
+      // Try running the same query with service role key (bypassing RLS)
+      const { createClient } = require("@supabase/supabase-js");
+
+      const supabaseService = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY! // <- must be in env
+      );
+
+      const { data: rawTasks, error: rawError } = await supabaseService
         .from("tasks")
         .select("*")
         .eq("user_id", user_id)
-        .limit(limitNumber);
-  
-      console.log("Tasks:", tasks);
-      console.log("Error:", error);
-  
-      // Step 2: Detect RLS block
-      let rlsBlocked = false;
-  
-      if (!error && tasks?.length === 0) {
-        // Try running the same query with service role key (bypassing RLS)
-        const { createClient } = require("@supabase/supabase-js");
-  
-        const supabaseService = createClient(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY! // <- must be in env
-        );
-  
-        const { data: rawTasks, error: rawError } = await supabaseService
-          .from("tasks")
-          .select("*")
-          .eq("user_id", user_id)
-          .limit(1); // just check existence
-  
-        if (rawTasks && rawTasks.length > 0 && !rawError) {
-          rlsBlocked = true;
-        }
-      }
-  
-      res.json({
-        tasks,
-        error,
-        rlsBlocked,
-      });
-    } catch (error) {
-      console.error("Fetch tasks error:", error);
-      res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to fetch tasks",
-      });
-    }
-  });
-  
+        .limit(1); // just check existence
 
+      if (rawTasks && rawTasks.length > 0 && !rawError) {
+        rlsBlocked = true;
+      }
+    }
+
+    res.json({
+      tasks,
+      error,
+      rlsBlocked,
+    });
+  } catch (error) {
+    console.error("Fetch tasks error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to fetch tasks",
+    });
+  }
+});
 
 // .order("due_date", { ascending: true })
 // .order("created_at", { ascending: false })
@@ -604,204 +602,7 @@ router.post(
     console.log("🤖 POST /api/tasks/:id/enhance-ai called");
     console.log("   Body:", req.body);
 
-    try {
-      const { id } = req.params;
-      const { enhancement_type } = req.body;
-      const authenticatedReq = req as any;
-
-      // Validate request body with Zod
-      const validationResult = TaskEnhancementRequestSchema.safeParse({
-        enhancement_type,
-        task_id: id,
-      });
-
-      if (!validationResult.success) {
-        res.status(400).json({
-          success: false,
-          error: "Bad Request",
-          message: `Validation failed: ${validationResult.error.errors
-            .map((e) => e.message)
-            .join(", ")}`,
-        });
-        return;
-      }
-
-      // Get the original task
-      const { data: originalTask, error: taskError } = await supabase!
-        .from("tasks")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", authenticatedReq.user.id)
-        .single();
-
-      if (taskError) {
-        res.status(404).json({
-          success: false,
-          error: "Not Found",
-          message: "Task not found",
-        });
-        return;
-      }
-
-      // Initialize OpenAI service
-      const openaiService = new OpenAIService();
-
-      // Set up timeout for AI processing
-      const aiTimeout = setTimeout(() => {
-        // Update task status to indicate timeout
-        supabase!
-          .from("tasks")
-          .update({
-            ai_enhancement_status: "enhancement_failed",
-            ai_enhancement_notes: "AI enhancement timed out after 60 seconds",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", id)
-          .eq("user_id", authenticatedReq.user.id);
-      }, 60000); // 60 second timeout
-
-      if (enhancement_type === "enhance") {
-        try {
-          // Enhance the task title and description using OpenAI
-          const openaiRequest = {
-            task_title: originalTask.title,
-            task_description: originalTask.description,
-            enhancement_type: "enhance" as const,
-          };
-
-          const enhancedTask = await openaiService.enhanceTask(openaiRequest);
-
-          // Clear timeout since we got a response
-          clearTimeout(aiTimeout);
-
-          // Update the task in the database
-          const { data: updatedTask, error: updateError } = await supabase!
-            .from("tasks")
-            .update({
-              title: enhancedTask.enhanced_title,
-              description:
-                enhancedTask.enhanced_description || originalTask.description,
-              ai_enhanced_title: enhancedTask.enhanced_title,
-              ai_enhanced_description: enhancedTask.enhanced_description,
-              ai_enhancement_notes: enhancedTask.enhancement_notes,
-              ai_enhancement_status: "enhanced",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", id)
-            .eq("user_id", authenticatedReq.user.id)
-            .select()
-            .single();
-
-          if (updateError) {
-            res.status(500).json({
-              success: false,
-              error: "Database Error",
-              message: "Failed to update enhanced task",
-            });
-            return;
-          }
-
-          const response: AIEnhancementResponse = {
-            success: true,
-            message: "Task enhanced successfully with AI",
-            data: {
-              id: updatedTask.id,
-              title: updatedTask.title,
-              description: updatedTask.description,
-              enhanced_title: enhancedTask.enhanced_title,
-              enhanced_description: enhancedTask.enhanced_description,
-              ai_enhancement_notes: enhancedTask.enhancement_notes,
-            },
-          };
-
-          res.json(response);
-        } catch (error) {
-          clearTimeout(aiTimeout);
-          throw error;
-        }
-      } else if (enhancement_type === "split") {
-        try {
-          // Split the task into subtasks using OpenAI
-          const openaiRequest = {
-            task_title: originalTask.title,
-            task_description: originalTask.description,
-            enhancement_type: "split" as const,
-          };
-
-          const splitResult = await openaiService.splitTask(openaiRequest);
-
-          // Clear timeout since we got a response
-          clearTimeout(aiTimeout);
-
-          // Create the subtasks in the database
-          const createdSubtasks = [];
-          for (const subtask of splitResult.subtasks) {
-            const { data: newSubtask, error: createError } = await supabase!
-              .from("tasks")
-              .insert({
-                title: subtask.title,
-                description: subtask.description,
-                status: "not_started",
-                priority: subtask.priority,
-                tags: subtask.tags || [],
-                user_id: authenticatedReq.user.id,
-                parent_task_id: id,
-              })
-              .select()
-              .single();
-
-            if (createError) {
-              console.error("Failed to create subtask:", createError);
-              continue;
-            }
-
-            createdSubtasks.push(newSubtask);
-          }
-
-          // Update the parent task status to indicate it's been split
-          await supabase!
-            .from("tasks")
-            .update({
-              status: "in_progress",
-              ai_enhancement_status: "enhanced",
-              ai_enhancement_notes: `Task split into ${createdSubtasks.length} subtasks using AI`,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", id)
-            .eq("user_id", authenticatedReq.user.id);
-
-          const response: AIEnhancementResponse = {
-            success: true,
-            message: `Task split into ${createdSubtasks.length} subtasks`,
-            data: {
-              parent_task_id: id,
-              subtasks: createdSubtasks.map((task) => ({
-                title: task.title,
-                description: task.description,
-                estimated_effort: "AI estimated",
-                priority: task.priority,
-                tags: task.tags,
-              })),
-              split_reasoning: splitResult.split_reasoning,
-            },
-          };
-
-          res.json(response);
-        } catch (error) {
-          clearTimeout(aiTimeout);
-          throw error;
-        }
-      }
-    } catch (error) {
-      console.error("AI enhancement error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Internal Server Error",
-        message: `Failed to enhance task with AI: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
-    }
+    res.status(200).json({ message: "AI enhancement started" });
   }
 );
 

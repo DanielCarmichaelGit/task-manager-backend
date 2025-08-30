@@ -48,9 +48,25 @@ export const OpenAIEnhancementRequestSchema = z.object({
 
 // Zod schema for OpenAI enhancement response
 export const OpenAIEnhancementResponseSchema = z.object({
-  enhanced_title: z.string(),
+  output: z
+    .object({
+      id: z.string().uuid().optional(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      status: z.string().optional(),
+      priority: z.string().optional(),
+      due_date: z.string().optional(),
+      estimated_hours: z.number().optional(),
+      tags: z.array(z.string()).optional(),
+      user_id: z.string().uuid().optional(),
+      created_at: z.string().optional(),
+      updated_at: z.string().optional(),
+      ai_enhancement_notes: z.string().optional(),
+    })
+    .optional(),
+  enhanced_title: z.string().optional(),
   enhanced_description: z.string().optional(),
-  enhancement_notes: z.string(),
+  enhancement_notes: z.string().optional(),
 });
 
 // Zod schema for OpenAI split response
