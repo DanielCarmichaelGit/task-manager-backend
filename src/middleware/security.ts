@@ -33,13 +33,12 @@ const authLimiter = createRateLimiter(
 );
 
 // CORS configuration
-const corsOptions: cors.CorsOptions = {
+const corsOptions: cors.CorsOptions = process.env.NODE_ENV === "production" ? {
   origin: true, // Allow all origins while keeping credentials enabled
-  credentials: true,
   optionsSuccessStatus: 200,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-};
+} : {};
 
 // Security middleware setup
 export const setupSecurityMiddleware = (app: Application): void => {
