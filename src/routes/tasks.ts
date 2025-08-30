@@ -313,7 +313,7 @@ router.put(
           due_date,
           estimated_hours,
           tags,
-          parent_task_id,
+          ...(parent_task_id && { parent_task_id }),
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
