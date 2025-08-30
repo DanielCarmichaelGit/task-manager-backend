@@ -17,13 +17,25 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date?: string;
+  estimated_hours?: number;
+  tags?: string[];
   user_id: string;
   parent_task_id?: string; // New: allows tasks to have parent tasks
   created_at: string;
   updated_at: string;
 }
 
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type TaskStatus =
+  | "not_started"
+  | "planning"
+  | "in_progress"
+  | "review"
+  | "testing"
+  | "completed"
+  | "on_hold"
+  | "cancelled"
+  | "deferred"
+  | "blocked";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface CreateTaskRequest {
@@ -32,6 +44,8 @@ export interface CreateTaskRequest {
   status?: TaskStatus;
   priority?: TaskPriority;
   due_date?: string;
+  estimated_hours?: number;
+  tags?: string[];
   parent_task_id?: string; // New: optional parent task ID
 }
 
@@ -41,6 +55,8 @@ export interface UpdateTaskRequest {
   status?: TaskStatus;
   priority?: TaskPriority;
   due_date?: string;
+  estimated_hours?: number;
+  tags?: string[];
   parent_task_id?: string; // New: can update parent task
 }
 

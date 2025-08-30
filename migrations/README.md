@@ -2,45 +2,14 @@
 
 This folder contains all the SQL migration files needed to set up your Supabase database for the Task Manager Backend.
 
-## 📋 Migration Files
+## Available Migrations
 
-### 1. `001_initial_schema.sql`
-
-**Initial database setup**
-
-- Creates the main `tasks` table
-- Sets up basic indexes and constraints
-- Enables Row Level Security (RLS)
-- Creates RLS policies for user isolation
-- Sets up automatic timestamp updates
-
-### 2. `002_hierarchical_tasks.sql`
-
-**Parent-child task relationships**
-
-- Adds `parent_task_id` column to tasks table
-- Creates indexes for hierarchical queries
-- Prevents circular references
-- Limits nesting depth to 3 levels
-- Updates RLS policies for parent-child access
-
-### 3. `003_ai_enhancement_support.sql`
-
-**AI enhancement features**
-
-- Adds AI enhancement fields to tasks table
-- Creates `ai_enhancement_queue` table for processing
-- Sets up RLS policies for AI enhancement data
-- Adds tracking for enhancement status and metadata
-
-### 4. `004_chatbot_integration.sql`
-
-**Chatbot and WhatsApp integration**
-
-- Creates `chatbot_interactions` table for conversation history
-- Creates `whatsapp_integrations` table for WhatsApp setup
-- Sets up RLS policies for chatbot data
-- Enables tracking of bot interactions and task creation
+1. **001_initial_schema.sql** - Initial tasks table, RLS, indexes, and triggers
+2. **002_hierarchical_tasks.sql** - Adds parent-child task relationships
+3. **003_ai_enhancement_support.sql** - Adds AI enhancement fields and queue
+4. **004_chatbot_integration.sql** - Adds chatbot and WhatsApp integration tables
+5. **005_fix_status_constraint.sql** - Fixes status constraint to match TypeScript types
+6. **000_master_migration.sql** - Combines all migrations for single-run setup
 
 ## 🚀 How to Run Migrations
 

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
+  status TEXT DEFAULT 'not_started' CHECK (status IN ('not_started', 'planning', 'in_progress', 'review', 'testing', 'completed', 'on_hold', 'cancelled', 'deferred', 'blocked')),
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
   due_date TIMESTAMP WITH TIME ZONE,
   estimated_hours INTEGER,
@@ -258,6 +258,21 @@ CREATE TRIGGER update_whatsapp_integrations_updated_at
     BEFORE UPDATE ON whatsapp_integrations 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- MIGRATION 005: Fix Status Constraint
+-- =====================================================
+
+-- Fix status constraint to match TypeScript types
+-- Drop the existing status check constraint if it exists
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check;
+
+-- Add the correct status check constraint that matches TypeScript types
+ALTER TABLE tasks ADD CONSTRAINT tasks_status_check 
+  CHECK (status IN ('not_started', 'planning', 'in_progress', 'review', 'testing', 'completed', 'on_hold', 'cancelled', 'deferred', 'blocked'));
+
+-- Update any existing tasks with invalid status values to 'not_started'
+UPDATE tasks SET status = 'not_started' WHERE status NOT IN ('not_started', 'planning', 'in_progress', 'review', 'testing', 'completed', 'on_hold', 'cancelled', 'deferred', 'blocked');
 
 -- =====================================================
 -- FINAL SETUP AND COMMENTS

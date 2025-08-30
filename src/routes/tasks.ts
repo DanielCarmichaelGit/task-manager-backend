@@ -174,11 +174,17 @@ router.post(
       const {
         title,
         description,
-        status = "pending",
+        status = "not_started",
         priority = "medium",
         due_date,
+        estimated_hours,
+        tags,
+        parent_task_id,
       } = req.body;
       const authenticatedReq = req as AuthenticatedRequest;
+
+      console.log("   User ID:", authenticatedReq.user.id);
+      console.log("   User object:", authenticatedReq.user);
 
       if (!title) {
         res.status(400).json({
@@ -188,20 +194,74 @@ router.post(
         return;
       }
 
+      // Validate status value
+      const validStatuses = [
+        "not_started",
+        "planning",
+        "in_progress",
+        "review",
+        "testing",
+        "completed",
+        "on_hold",
+        "cancelled",
+        "deferred",
+        "blocked",
+      ];
+      if (status && !validStatuses.includes(status)) {
+        res.status(400).json({
+          error: "Bad Request",
+          message: `Invalid status. Must be one of: ${validStatuses.join(
+            ", "
+          )}`,
+        });
+        return;
+      }
+
+      // Validate priority value
+      const validPriorities = ["low", "medium", "high"];
+      if (priority && !validPriorities.includes(priority)) {
+        res.status(400).json({
+          error: "Bad Request",
+          message: `Invalid priority. Must be one of: ${validPriorities.join(
+            ", "
+          )}`,
+        });
+        return;
+      }
+
+      const insertData = {
+        title,
+        description,
+        status,
+        priority,
+        due_date,
+        estimated_hours,
+        tags,
+        parent_task_id,
+        user_id: authenticatedReq.user.id,
+      };
+
+      console.log("   Insert data:", insertData);
+
       const { data: task, error } = await supabase!
         .from("tasks")
-        .insert({
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Database insert error:", error);
+        console.error("Attempted insert data:", {
           title,
           description,
           status,
           priority,
           due_date,
+          estimated_hours,
+          tags,
+          parent_task_id,
           user_id: authenticatedReq.user.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
+        });
         res.status(400).json({
           error: "Database Error",
           message: error.message,
@@ -236,7 +296,16 @@ router.put(
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const { title, description, status, priority, due_date } = req.body;
+      const {
+        title,
+        description,
+        status,
+        priority,
+        due_date,
+        estimated_hours,
+        tags,
+        parent_task_id,
+      } = req.body;
       const authenticatedReq = req as any;
 
       // First check if the task exists and belongs to the user
@@ -263,6 +332,9 @@ router.put(
           status,
           priority,
           due_date,
+          estimated_hours,
+          tags,
+          parent_task_id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -372,10 +444,16 @@ router.patch(
       }
 
       const validStatuses = [
-        "pending",
+        "not_started",
+        "planning",
         "in_progress",
+        "review",
+        "testing",
         "completed",
+        "on_hold",
         "cancelled",
+        "deferred",
+        "blocked",
       ];
       if (!validStatuses.includes(status)) {
         res.status(400).json({
@@ -682,7 +760,7 @@ router.post(
               .insert({
                 title: subtask.title,
                 description: subtask.description,
-                status: "pending",
+                status: "not_started",
                 priority: subtask.priority,
                 tags: subtask.tags || [],
                 user_id: authenticatedReq.user.id,
