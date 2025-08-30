@@ -32,76 +32,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   console.log("📋 GET /api/tasks called");
   try {
     const authenticatedReq = req as any;
-    const { with_children, limit } = req.query; // Added limit parameter
+    const { with_children, limit } = req.query;
 
-    let query = supabase!
+    const limitNumber = limit ? parseInt(limit as string) : 200;
+
+    const { data: tasks, error } = await supabase
       .from("tasks")
       .select("*")
-      .eq("user_id", authenticatedReq.user.id);
-
-    // Apply limit if specified
-    if (limit && !isNaN(Number(limit))) {
-      const limitNumber = parseInt(limit as string);
-      query = query.limit(limitNumber);
-    }
-
-    // Sort by due_date (closest to furthest away), then by created_at
-    query = query
+      .eq("user_id", authenticatedReq.user.id)
       .order("due_date", { ascending: true })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(limitNumber);
 
-    // If with_children is requested, get tasks with their children
-    if (with_children === "true") {
-      const { data: tasks, error } = await query;
+    console.log("Tasks:", tasks);
+    console.log("Error:", error);
 
-      if (error) {
-        res.status(400).json({
-          error: "Database Error",
-          message: error.message,
-        });
-        return;
-      }
-
-      // For each task, get its children
-      const tasksWithChildren = await Promise.all(
-        (tasks || []).map(async (task) => {
-          const { data: children } = await supabase!
-            .from("tasks")
-            .select("*")
-            .eq("parent_task_id", task.id)
-            .eq("user_id", authenticatedReq.user.id);
-
-          return {
-            ...task,
-            children: children || [],
-            child_count: (children || []).length,
-          };
-        })
-      );
-
-      res.json({
-        tasks: tasksWithChildren,
-        limit: limit ? parseInt(limit as string) : null,
-        total_count: tasksWithChildren.length,
-      });
-    } else {
-      // Regular task fetch without children
-      const { data: tasks, error } = await query;
-
-      if (error) {
-        res.status(400).json({
-          error: "Database Error",
-          message: error.message,
-        });
-        return;
-      }
-
-      res.json({
-        tasks: tasks || [],
-        limit: limit ? parseInt(limit as string) : null,
-        total_count: tasks?.length || 0,
-      });
-    }
+    res.json({ tasks });
   } catch (error) {
     console.error("Fetch tasks error:", error);
     res.status(500).json({

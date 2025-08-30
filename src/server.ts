@@ -10,13 +10,6 @@ const app: Application = express();
 
 // Add request logging middleware
 app.use((req: Request, res: Response, next: NextFunction): void => {
-  console.log(
-    `📥 ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`
-  );
-  console.log(`   Headers:`, req.headers);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log(`   Body:`, req.body);
-  }
   next();
 });
 
